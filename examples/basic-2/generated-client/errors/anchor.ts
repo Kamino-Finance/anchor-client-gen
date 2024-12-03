@@ -5,6 +5,8 @@ export type AnchorError =
   | InstructionDidNotSerialize
   | IdlInstructionStub
   | IdlInstructionInvalidProgram
+  | IdlAccountNotEmpty
+  | EventInstructionStub
   | ConstraintMut
   | ConstraintHasOne
   | ConstraintSigner
@@ -26,6 +28,25 @@ export type AnchorError =
   | ConstraintMintDecimals
   | ConstraintSpace
   | ConstraintAccountIsNone
+  | ConstraintTokenTokenProgram
+  | ConstraintMintTokenProgram
+  | ConstraintAssociatedTokenTokenProgram
+  | ConstraintMintGroupPointerExtension
+  | ConstraintMintGroupPointerExtensionAuthority
+  | ConstraintMintGroupPointerExtensionGroupAddress
+  | ConstraintMintGroupMemberPointerExtension
+  | ConstraintMintGroupMemberPointerExtensionAuthority
+  | ConstraintMintGroupMemberPointerExtensionMemberAddress
+  | ConstraintMintMetadataPointerExtension
+  | ConstraintMintMetadataPointerExtensionAuthority
+  | ConstraintMintMetadataPointerExtensionMetadataAddress
+  | ConstraintMintCloseAuthorityExtension
+  | ConstraintMintCloseAuthorityExtensionAuthority
+  | ConstraintMintPermanentDelegateExtension
+  | ConstraintMintPermanentDelegateExtensionDelegate
+  | ConstraintMintTransferHookExtension
+  | ConstraintMintTransferHookExtensionAuthority
+  | ConstraintMintTransferHookExtensionProgramId
   | RequireViolated
   | RequireEqViolated
   | RequireKeysEqViolated
@@ -52,6 +73,8 @@ export type AnchorError =
   | AccountReallocExceedsLimit
   | AccountDuplicateReallocs
   | DeclaredProgramIdMismatch
+  | TryingToInitPayerAsProgramAccount
+  | InvalidNumericConversion
   | Deprecated
 
 export class InstructionMissing extends Error {
@@ -120,6 +143,31 @@ export class IdlInstructionInvalidProgram extends Error {
     super(
       "1001: The transaction was given an invalid program for the IDL instruction"
     )
+  }
+}
+
+export class IdlAccountNotEmpty extends Error {
+  static readonly code = 1002
+  readonly code = 1002
+  readonly name = "IdlAccountNotEmpty"
+  readonly msg =
+    "IDL account must be empty in order to resize, try closing first"
+
+  constructor(readonly logs?: string[]) {
+    super(
+      "1002: IDL account must be empty in order to resize, try closing first"
+    )
+  }
+}
+
+export class EventInstructionStub extends Error {
+  static readonly code = 1500
+  readonly code = 1500
+  readonly name = "EventInstructionStub"
+  readonly msg = "The program was compiled without `event-cpi` feature"
+
+  constructor(readonly logs?: string[]) {
+    super("1500: The program was compiled without `event-cpi` feature")
   }
 }
 
@@ -351,6 +399,239 @@ export class ConstraintAccountIsNone extends Error {
 
   constructor(readonly logs?: string[]) {
     super("2020: A required account for the constraint is None")
+  }
+}
+
+export class ConstraintTokenTokenProgram extends Error {
+  static readonly code = 2021
+  readonly code = 2021
+  readonly name = "ConstraintTokenTokenProgram"
+  readonly msg = "A token account token program constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super("2021: A token account token program constraint was violated")
+  }
+}
+
+export class ConstraintMintTokenProgram extends Error {
+  static readonly code = 2022
+  readonly code = 2022
+  readonly name = "ConstraintMintTokenProgram"
+  readonly msg = "A mint token program constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super("2022: A mint token program constraint was violated")
+  }
+}
+
+export class ConstraintAssociatedTokenTokenProgram extends Error {
+  static readonly code = 2023
+  readonly code = 2023
+  readonly name = "ConstraintAssociatedTokenTokenProgram"
+  readonly msg =
+    "An associated token account token program constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super(
+      "2023: An associated token account token program constraint was violated"
+    )
+  }
+}
+
+export class ConstraintMintGroupPointerExtension extends Error {
+  static readonly code = 2024
+  readonly code = 2024
+  readonly name = "ConstraintMintGroupPointerExtension"
+  readonly msg = "A group pointer extension constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super("2024: A group pointer extension constraint was violated")
+  }
+}
+
+export class ConstraintMintGroupPointerExtensionAuthority extends Error {
+  static readonly code = 2025
+  readonly code = 2025
+  readonly name = "ConstraintMintGroupPointerExtensionAuthority"
+  readonly msg = "A group pointer extension authority constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super("2025: A group pointer extension authority constraint was violated")
+  }
+}
+
+export class ConstraintMintGroupPointerExtensionGroupAddress extends Error {
+  static readonly code = 2026
+  readonly code = 2026
+  readonly name = "ConstraintMintGroupPointerExtensionGroupAddress"
+  readonly msg =
+    "A group pointer extension group address constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super(
+      "2026: A group pointer extension group address constraint was violated"
+    )
+  }
+}
+
+export class ConstraintMintGroupMemberPointerExtension extends Error {
+  static readonly code = 2027
+  readonly code = 2027
+  readonly name = "ConstraintMintGroupMemberPointerExtension"
+  readonly msg = "A group member pointer extension constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super("2027: A group member pointer extension constraint was violated")
+  }
+}
+
+export class ConstraintMintGroupMemberPointerExtensionAuthority extends Error {
+  static readonly code = 2028
+  readonly code = 2028
+  readonly name = "ConstraintMintGroupMemberPointerExtensionAuthority"
+  readonly msg =
+    "A group member pointer extension authority constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super(
+      "2028: A group member pointer extension authority constraint was violated"
+    )
+  }
+}
+
+export class ConstraintMintGroupMemberPointerExtensionMemberAddress extends Error {
+  static readonly code = 2029
+  readonly code = 2029
+  readonly name = "ConstraintMintGroupMemberPointerExtensionMemberAddress"
+  readonly msg =
+    "A group member pointer extension group address constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super(
+      "2029: A group member pointer extension group address constraint was violated"
+    )
+  }
+}
+
+export class ConstraintMintMetadataPointerExtension extends Error {
+  static readonly code = 2030
+  readonly code = 2030
+  readonly name = "ConstraintMintMetadataPointerExtension"
+  readonly msg = "A metadata pointer extension constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super("2030: A metadata pointer extension constraint was violated")
+  }
+}
+
+export class ConstraintMintMetadataPointerExtensionAuthority extends Error {
+  static readonly code = 2031
+  readonly code = 2031
+  readonly name = "ConstraintMintMetadataPointerExtensionAuthority"
+  readonly msg =
+    "A metadata pointer extension authority constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super(
+      "2031: A metadata pointer extension authority constraint was violated"
+    )
+  }
+}
+
+export class ConstraintMintMetadataPointerExtensionMetadataAddress extends Error {
+  static readonly code = 2032
+  readonly code = 2032
+  readonly name = "ConstraintMintMetadataPointerExtensionMetadataAddress"
+  readonly msg =
+    "A metadata pointer extension metadata address constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super(
+      "2032: A metadata pointer extension metadata address constraint was violated"
+    )
+  }
+}
+
+export class ConstraintMintCloseAuthorityExtension extends Error {
+  static readonly code = 2033
+  readonly code = 2033
+  readonly name = "ConstraintMintCloseAuthorityExtension"
+  readonly msg = "A close authority constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super("2033: A close authority constraint was violated")
+  }
+}
+
+export class ConstraintMintCloseAuthorityExtensionAuthority extends Error {
+  static readonly code = 2034
+  readonly code = 2034
+  readonly name = "ConstraintMintCloseAuthorityExtensionAuthority"
+  readonly msg = "A close authority extension authority constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super("2034: A close authority extension authority constraint was violated")
+  }
+}
+
+export class ConstraintMintPermanentDelegateExtension extends Error {
+  static readonly code = 2035
+  readonly code = 2035
+  readonly name = "ConstraintMintPermanentDelegateExtension"
+  readonly msg = "A permanent delegate extension constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super("2035: A permanent delegate extension constraint was violated")
+  }
+}
+
+export class ConstraintMintPermanentDelegateExtensionDelegate extends Error {
+  static readonly code = 2036
+  readonly code = 2036
+  readonly name = "ConstraintMintPermanentDelegateExtensionDelegate"
+  readonly msg =
+    "A permanent delegate extension delegate constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super(
+      "2036: A permanent delegate extension delegate constraint was violated"
+    )
+  }
+}
+
+export class ConstraintMintTransferHookExtension extends Error {
+  static readonly code = 2037
+  readonly code = 2037
+  readonly name = "ConstraintMintTransferHookExtension"
+  readonly msg = "A transfer hook extension constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super("2037: A transfer hook extension constraint was violated")
+  }
+}
+
+export class ConstraintMintTransferHookExtensionAuthority extends Error {
+  static readonly code = 2038
+  readonly code = 2038
+  readonly name = "ConstraintMintTransferHookExtensionAuthority"
+  readonly msg = "A transfer hook extension authority constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super("2038: A transfer hook extension authority constraint was violated")
+  }
+}
+
+export class ConstraintMintTransferHookExtensionProgramId extends Error {
+  static readonly code = 2039
+  readonly code = 2039
+  readonly name = "ConstraintMintTransferHookExtensionProgramId"
+  readonly msg =
+    "A transfer hook extension transfer hook program id constraint was violated"
+
+  constructor(readonly logs?: string[]) {
+    super(
+      "2039: A transfer hook extension transfer hook program id constraint was violated"
+    )
   }
 }
 
@@ -646,6 +927,34 @@ export class DeclaredProgramIdMismatch extends Error {
   }
 }
 
+export class TryingToInitPayerAsProgramAccount extends Error {
+  static readonly code = 4101
+  readonly code = 4101
+  readonly name = "TryingToInitPayerAsProgramAccount"
+  readonly msg =
+    "You cannot/should not initialize the payer account as a program account"
+
+  constructor(readonly logs?: string[]) {
+    super(
+      "4101: You cannot/should not initialize the payer account as a program account"
+    )
+  }
+}
+
+export class InvalidNumericConversion extends Error {
+  static readonly code = 4102
+  readonly code = 4102
+  readonly name = "InvalidNumericConversion"
+  readonly msg =
+    "The program could not perform the numeric conversion, out of range integral type conversion attempted"
+
+  constructor(readonly logs?: string[]) {
+    super(
+      "4102: The program could not perform the numeric conversion, out of range integral type conversion attempted"
+    )
+  }
+}
+
 export class Deprecated extends Error {
   static readonly code = 5000
   readonly code = 5000
@@ -671,6 +980,10 @@ export function fromCode(code: number, logs?: string[]): AnchorError | null {
       return new IdlInstructionStub(logs)
     case 1001:
       return new IdlInstructionInvalidProgram(logs)
+    case 1002:
+      return new IdlAccountNotEmpty(logs)
+    case 1500:
+      return new EventInstructionStub(logs)
     case 2000:
       return new ConstraintMut(logs)
     case 2001:
@@ -713,6 +1026,44 @@ export function fromCode(code: number, logs?: string[]): AnchorError | null {
       return new ConstraintSpace(logs)
     case 2020:
       return new ConstraintAccountIsNone(logs)
+    case 2021:
+      return new ConstraintTokenTokenProgram(logs)
+    case 2022:
+      return new ConstraintMintTokenProgram(logs)
+    case 2023:
+      return new ConstraintAssociatedTokenTokenProgram(logs)
+    case 2024:
+      return new ConstraintMintGroupPointerExtension(logs)
+    case 2025:
+      return new ConstraintMintGroupPointerExtensionAuthority(logs)
+    case 2026:
+      return new ConstraintMintGroupPointerExtensionGroupAddress(logs)
+    case 2027:
+      return new ConstraintMintGroupMemberPointerExtension(logs)
+    case 2028:
+      return new ConstraintMintGroupMemberPointerExtensionAuthority(logs)
+    case 2029:
+      return new ConstraintMintGroupMemberPointerExtensionMemberAddress(logs)
+    case 2030:
+      return new ConstraintMintMetadataPointerExtension(logs)
+    case 2031:
+      return new ConstraintMintMetadataPointerExtensionAuthority(logs)
+    case 2032:
+      return new ConstraintMintMetadataPointerExtensionMetadataAddress(logs)
+    case 2033:
+      return new ConstraintMintCloseAuthorityExtension(logs)
+    case 2034:
+      return new ConstraintMintCloseAuthorityExtensionAuthority(logs)
+    case 2035:
+      return new ConstraintMintPermanentDelegateExtension(logs)
+    case 2036:
+      return new ConstraintMintPermanentDelegateExtensionDelegate(logs)
+    case 2037:
+      return new ConstraintMintTransferHookExtension(logs)
+    case 2038:
+      return new ConstraintMintTransferHookExtensionAuthority(logs)
+    case 2039:
+      return new ConstraintMintTransferHookExtensionProgramId(logs)
     case 2500:
       return new RequireViolated(logs)
     case 2501:
@@ -765,6 +1116,10 @@ export function fromCode(code: number, logs?: string[]): AnchorError | null {
       return new AccountDuplicateReallocs(logs)
     case 4100:
       return new DeclaredProgramIdMismatch(logs)
+    case 4101:
+      return new TryingToInitPayerAsProgramAccount(logs)
+    case 4102:
+      return new InvalidNumericConversion(logs)
     case 5000:
       return new Deprecated(logs)
   }
