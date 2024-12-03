@@ -311,6 +311,30 @@
   ],
   "accounts": [
     {
+      "name": "OptionalState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "readonlySignerOption",
+            "type": "bool"
+          },
+          {
+            "name": "mutableSignerOption",
+            "type": "bool"
+          },
+          {
+            "name": "readonlyOption",
+            "type": "bool"
+          },
+          {
+            "name": "mutableOption",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
       "name": "State",
       "docs": [
         "An account containing various fields"
@@ -470,30 +494,6 @@
           }
         ]
       }
-    },
-    {
-      "name": "OptionalState",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "readonlySignerOption",
-            "type": "bool"
-          },
-          {
-            "name": "mutableSignerOption",
-            "type": "bool"
-          },
-          {
-            "name": "readonlyOption",
-            "type": "bool"
-          },
-          {
-            "name": "mutableOption",
-            "type": "bool"
-          }
-        ]
-      }
     }
   ],
   "types": [
@@ -515,54 +515,6 @@
           {
             "name": "otherField",
             "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "FooStruct",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "field1",
-            "type": "u8"
-          },
-          {
-            "name": "field2",
-            "type": "u16"
-          },
-          {
-            "name": "nested",
-            "type": {
-              "defined": "BarStruct"
-            }
-          },
-          {
-            "name": "vecNested",
-            "type": {
-              "vec": {
-                "defined": "BarStruct"
-              }
-            }
-          },
-          {
-            "name": "optionNested",
-            "type": {
-              "option": {
-                "defined": "BarStruct"
-              }
-            }
-          },
-          {
-            "name": "enumField",
-            "type": {
-              "defined": "FooEnum"
-            }
-          },
-          {
-            "name": "pubkeyField",
-            "type": "publicKey"
           }
         ]
       }
@@ -645,6 +597,54 @@
           },
           {
             "name": "NoFields"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FooStruct",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "field1",
+            "type": "u8"
+          },
+          {
+            "name": "field2",
+            "type": "u16"
+          },
+          {
+            "name": "nested",
+            "type": {
+              "defined": "BarStruct"
+            }
+          },
+          {
+            "name": "vecNested",
+            "type": {
+              "vec": {
+                "defined": "BarStruct"
+              }
+            }
+          },
+          {
+            "name": "optionNested",
+            "type": {
+              "option": {
+                "defined": "BarStruct"
+              }
+            }
+          },
+          {
+            "name": "enumField",
+            "type": {
+              "defined": "FooEnum"
+            }
+          },
+          {
+            "name": "pubkeyField",
+            "type": "publicKey"
           }
         ]
       }
