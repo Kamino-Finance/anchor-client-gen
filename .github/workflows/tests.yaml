@@ -9,7 +9,7 @@ on:
       - master
 env:
   SOLANA_CLI_VERSION: 1.14.17
-  NODE_VERSION: 18
+  NODE_VERSION: 22
 
 jobs:
   example-program-tests:

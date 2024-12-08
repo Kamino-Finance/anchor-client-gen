@@ -81,7 +81,7 @@ export function tsTypeFromIdl(
       return "Uint8Array"
     case "string":
       return "string"
-    case "publicKey":
+    case "pubkey":
       return "Address"
     default:
       if (isComplexType(ty) && "vec" in ty) {
@@ -109,7 +109,8 @@ export function tsTypeFromIdl(
         )} | null`
       }
       if (isComplexType(ty) && "defined" in ty) {
-        const filtered = idl.types?.filter((t) => t.name === ty.defined) ?? []
+        const filtered =
+          idl.types?.filter((t) => t.name === ty.defined.name) ?? []
         if (filtered.length !== 1) {
           throw new Error(`Defined type not found: ${JSON.stringify(ty)}`)
         }
@@ -117,12 +118,12 @@ export function tsTypeFromIdl(
         switch (filtered[0].type.kind) {
           case "struct": {
             const name = useFieldsInterfaceForStruct
-              ? fieldsInterfaceName(ty.defined)
+              ? fieldsInterfaceName(ty.defined.name)
               : ty.defined
             return `${definedTypesPrefix}${name}`
           }
           case "enum": {
-            const name = kindInterfaceName(ty.defined)
+            const name = kindInterfaceName(ty.defined.name)
             return `${definedTypesPrefix}${name}`
           }
         }
@@ -189,7 +190,7 @@ export function layoutForType(
       return `borsh.vecU8(${q(property)})`
     case "string":
       return `borsh.str(${q(property)})`
-    case "publicKey":
+    case "pubkey":
       return `borshAddress(${q(property)})`
     default:
       if (isComplexType(ty) && "vec" in ty) {
@@ -253,7 +254,7 @@ export function fieldToEncodable(
     case "u256":
     case "i256":
     case "string":
-    case "publicKey":
+    case "pubkey":
       return `${valPrefix}${ty.name}`
     case "bytes": {
       const v = `${valPrefix}${ty.name}`
@@ -294,7 +295,7 @@ export function fieldToEncodable(
       }
       if (isComplexType(ty.type) && "defined" in ty.type) {
         const defined = ty.type.defined
-        const filtered = idl.types?.filter((t) => t.name === defined) ?? []
+        const filtered = idl.types?.filter((t) => t.name === defined.name) ?? []
         if (filtered.length !== 1) {
           throw new Error(`Defined type not found: ${JSON.stringify(ty)}`)
         }
@@ -353,7 +354,7 @@ export function fieldFromDecoded(
     case "u256":
     case "i256":
     case "string":
-    case "publicKey":
+    case "pubkey":
       return `${valPrefix}${ty.name}`
     case "bytes": {
       const v = `${valPrefix}${ty.name}`
@@ -393,7 +394,7 @@ export function fieldFromDecoded(
       }
       if (isComplexType(ty.type) && "defined" in ty.type) {
         const defined = ty.type.defined
-        const filtered = idl.types?.filter((t) => t.name === defined) ?? []
+        const filtered = idl.types?.filter((t) => t.name === defined.name) ?? []
         if (filtered.length !== 1) {
           throw new Error(`Defined type not found: ${JSON.stringify(ty)}`)
         }
@@ -453,12 +454,12 @@ export function structFieldInitializer(
     case "i256":
     case "bytes":
     case "string":
-    case "publicKey":
+    case "pubkey":
       return `${prefix}${field.name}`
     default:
       if (isComplexType(field.type) && "defined" in field.type) {
         const defined = field.type.defined
-        const filtered = idl.types?.filter((t) => t.name === defined) ?? []
+        const filtered = idl.types?.filter((t) => t.name === defined.name) ?? []
         if (filtered.length !== 1) {
           throw new Error(`Defined type not found: ${defined}`)
         }
@@ -548,7 +549,7 @@ export function fieldToJSON(idl: Idl, ty: IdlField, valPrefix = ""): string {
     case "i32":
     case "f32":
     case "f64":
-    case "publicKey":
+    case "pubkey":
     case "string":
       return `${valPrefix}${ty.name}`
     case "u64":
@@ -609,7 +610,7 @@ export function fieldToJSON(idl: Idl, ty: IdlField, valPrefix = ""): string {
       }
       if (isComplexType(ty.type) && "defined" in ty.type) {
         const defined = ty.type.defined
-        const filtered = idl.types?.filter((t) => t.name === defined) ?? []
+        const filtered = idl.types?.filter((t) => t.name === defined.name) ?? []
         if (filtered.length !== 1) {
           throw new Error(`Defined type not found: ${JSON.stringify(ty)}`)
         }
@@ -653,7 +654,7 @@ export function idlTypeToJSONType(
     case "i128":
     case "u256":
     case "i256":
-    case "publicKey":
+    case "pubkey":
       return "string"
     case "bytes":
       return "Array<number>"
@@ -675,7 +676,7 @@ export function idlTypeToJSONType(
         return `${inner} | null`
       }
       if (isComplexType(ty) && "defined" in ty) {
-        return `${definedTypesPrefix}${jsonInterfaceName(ty.defined)}`
+        return `${definedTypesPrefix}${jsonInterfaceName(ty.defined.name)}`
       }
 
       unreachable(ty)
@@ -711,7 +712,7 @@ export function fieldFromJSON(
       return `new BN(${paramPrefix}${ty.name})`
     case "u256":
     case "i256":
-    case "publicKey":
+    case "pubkey":
       return `address(${paramPrefix}${ty.name})`
     default:
       if (isComplexType(ty.type) && "vec" in ty.type) {
