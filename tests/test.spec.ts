@@ -29,9 +29,9 @@ import {
   OptionalState,
   State,
   State2,
-} from "./example-program-gen/act/accounts"
-import { fromTxError } from "./example-program-gen/act/errors"
-import { InvalidProgramId } from "./example-program-gen/act/errors/anchor"
+} from "./example-program-gen/default/act/accounts"
+import { fromTxError } from "./example-program-gen/default/act/errors"
+import { InvalidProgramId } from "./example-program-gen/default/act/errors/anchor"
 import {
   causeError,
   initialize,
@@ -39,14 +39,14 @@ import {
   initializeWithValues2,
   optional,
   remaining,
-} from "./example-program-gen/act/instructions"
-import { BarStruct, FooStruct } from "./example-program-gen/act/types"
+} from "./example-program-gen/default/act/instructions"
+import { BarStruct, FooStruct } from "./example-program-gen/default/act/types"
 import {
   Named,
   NoFields,
   Struct,
   Unnamed,
-} from "./example-program-gen/act/types/FooEnum"
+} from "./example-program-gen/default/act/types/FooEnum"
 import * as path from "path"
 import { SYSVAR_CLOCK_ADDRESS, SYSVAR_RENT_ADDRESS } from "@solana/sysvars"
 import { SYSTEM_PROGRAM_ADDRESS } from "@solana-program/system"
@@ -57,10 +57,34 @@ const faucet = JSON.parse(
   fs.readFileSync("tests/.test-ledger/faucet-keypair.json").toString()
 )
 
-it("generator output", async () => {
+it("generator output default", async () => {
   const res = await dircompare.compare(
-    "tests/example-program-gen/exp",
-    "tests/example-program-gen/act",
+    "tests/example-program-gen/default/exp",
+    "tests/example-program-gen/default/act",
+    {
+      compareContent: true,
+      compareFileAsync:
+        dircompare.fileCompareHandlers.lineBasedFileCompare.compareAsync,
+    }
+  )
+  res.diffSet?.forEach((diff) => {
+    if (diff.state !== "equal") {
+      const p1 =
+        (diff.name1 && path.join("exp", diff.relativePath, diff.name1)) ||
+        undefined
+      const p2 =
+        (diff.name2 && path.join("act", diff.relativePath, diff.name2)) ||
+        undefined
+
+      throw new Error(`${p1} is different from ${p2}: ${diff.reason}`)
+    }
+  })
+})
+
+it("generator output no extensions", async () => {
+  const res = await dircompare.compare(
+    "tests/example-program-gen/no-ext/exp",
+    "tests/example-program-gen/no-ext/act",
     {
       compareContent: true,
       compareFileAsync:

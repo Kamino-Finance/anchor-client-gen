@@ -2,20 +2,18 @@
 import {
   Address,
   isSome,
-  AccountMeta,
-  AccountSignerMeta,
-  Instruction,
+  IAccountMeta,
+  IAccountSignerMeta,
+  IInstruction,
   Option,
   TransactionSigner,
 } from "@solana/kit"
 /* eslint-enable @typescript-eslint/no-unused-vars */
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
-import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
-import { PROGRAM_ID } from "../programId"
-
-export const DISCRIMINATOR = Buffer.from([220, 73, 8, 213, 178, 69, 181, 141])
+import { borshAddress } from "../utils/index.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from "../types/index.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import { PROGRAM_ID } from "../programId.js"
 
 export interface InitializeWithValuesArgs {
   boolField: boolean
@@ -91,17 +89,16 @@ export const layout = borsh.struct([
 export function initializeWithValues(
   args: InitializeWithValuesArgs,
   accounts: InitializeWithValuesAccounts,
-  remainingAccounts: Array<AccountMeta | AccountSignerMeta> = [],
   programAddress: Address = PROGRAM_ID
 ) {
-  const keys: Array<AccountMeta | AccountSignerMeta> = [
+  const keys: Array<IAccountMeta | IAccountSignerMeta> = [
     { address: accounts.state.address, role: 3, signer: accounts.state },
     { address: accounts.nested.clock, role: 0 },
     { address: accounts.nested.rent, role: 0 },
     { address: accounts.payer.address, role: 3, signer: accounts.payer },
     { address: accounts.systemProgram, role: 0 },
-    ...remainingAccounts,
   ]
+  const identifier = Buffer.from([220, 73, 8, 213, 178, 69, 181, 141])
   const buffer = Buffer.alloc(1000)
   const len = layout.encode(
     {
@@ -143,7 +140,7 @@ export function initializeWithValues(
     },
     buffer
   )
-  const data = Buffer.concat([DISCRIMINATOR, buffer]).slice(0, 8 + len)
-  const ix: Instruction = { accounts: keys, programAddress, data }
+  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len)
+  const ix: IInstruction = { accounts: keys, programAddress, data }
   return ix
 }

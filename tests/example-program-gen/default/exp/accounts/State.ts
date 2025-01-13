@@ -11,9 +11,9 @@ import {
 /* eslint-enable @typescript-eslint/no-unused-vars */
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
-import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
-import { PROGRAM_ID } from "../programId"
+import { borshAddress } from "../utils/index.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from "../types/index.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import { PROGRAM_ID } from "../programId.js"
 
 export interface StateFields {
   /** A boolean field */
@@ -183,9 +183,7 @@ export class State {
       return null
     }
     if (info.programAddress !== programId) {
-      throw new Error(
-        `StateFields account ${address} belongs to wrong program ${info.programAddress}, expected ${programId}`
-      )
+      throw new Error("account doesn't belong to this program")
     }
 
     return this.decode(Buffer.from(info.data))
@@ -203,9 +201,7 @@ export class State {
         return null
       }
       if (info.programAddress !== programId) {
-        throw new Error(
-          `StateFields account ${info.address} belongs to wrong program ${info.programAddress}, expected ${programId}`
-        )
+        throw new Error("account doesn't belong to this program")
       }
 
       return this.decode(Buffer.from(info.data))

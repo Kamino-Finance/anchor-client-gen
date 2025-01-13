@@ -1,5 +1,5 @@
 **/target/
-tests/example-program-gen/act
+tests/example-program-gen/**/act
 node_modules/
 .parcel-cache
 .DS_Store

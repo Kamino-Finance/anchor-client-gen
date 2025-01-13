@@ -21,20 +21,22 @@ import {
 export function genTypes(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   if (idl.types === undefined || idl.types.length === 0) {
     return
   }
 
-  genIndexFile(project, idl, outPath)
-  genTypeFiles(project, idl, outPath)
+  genIndexFile(project, idl, outPath, fileExtension)
+  genTypeFiles(project, idl, outPath, fileExtension)
 }
 
 function genIndexFile(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension
 ) {
   const src = project.createSourceFile(outPath("types/index.ts"), "", {
     overwrite: true,
@@ -45,7 +47,7 @@ function genIndexFile(
       case "struct":
         src.addExportDeclaration({
           namedExports: [ty.name],
-          moduleSpecifier: `./${ty.name}`,
+          moduleSpecifier: `./${ty.name}${fileExtension}`,
         })
         src.addExportDeclaration({
           namedExports: [
@@ -53,13 +55,13 @@ function genIndexFile(
             jsonInterfaceName(ty.name),
           ],
           isTypeOnly: true,
-          moduleSpecifier: `./${ty.name}`,
+          moduleSpecifier: `./${ty.name}${fileExtension}`,
         })
         return
       case "enum":
         src.addImportDeclaration({
           namespaceImport: ty.name,
-          moduleSpecifier: `./${ty.name}`,
+          moduleSpecifier: `./${ty.name}${fileExtension}`,
         })
         src.addExportDeclaration({
           namedExports: [ty.name],
@@ -95,7 +97,8 @@ function genIndexFile(
 function genTypeFiles(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   idl.types?.forEach((ty) => {
     const src = project.createSourceFile(outPath(`types/${ty.name}.ts`), "", {
@@ -104,11 +107,18 @@ function genTypeFiles(
 
     switch (ty.type.kind) {
       case "struct": {
-        genStruct(idl, src, ty.name, ty.type.fields, (ty as any).docs)
+        genStruct(
+          idl,
+          src,
+          fileExtension,
+          ty.name,
+          ty.type.fields,
+          (ty as any).docs
+        )
         return
       }
       case "enum": {
-        genEnum(idl, src, ty.name, ty.type.variants)
+        genEnum(idl, src, fileExtension, ty.name, ty.type.variants)
         return
       }
       case "alias":
@@ -122,6 +132,7 @@ function genTypeFiles(
 function genStruct(
   idl: Idl,
   src: SourceFile,
+  fileExtension: string,
   name: string,
   fields: Array<IdlField>,
   docs?: Array<string>
@@ -130,9 +141,9 @@ function genStruct(
   src.addStatements([
     `import { address, Address } from "@solana/kit" // eslint-disable-line @typescript-eslint/no-unused-vars`,
     `import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars`,
-    `import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+    `import * as types from "../types/index${fileExtension}" // eslint-disable-line @typescript-eslint/no-unused-vars`,
     `import * as borsh from "@coral-xyz/borsh"`,
-    `import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+    `import { borshAddress } from "../utils/index${fileExtension}" // eslint-disable-line @typescript-eslint/no-unused-vars`,
   ])
 
   // fields interface
@@ -322,6 +333,7 @@ function genStruct(
 function genEnum(
   idl: Idl,
   src: SourceFile,
+  fileExtension: string,
   name: string,
   variants: Array<IdlEnumVariant>
 ) {
@@ -329,9 +341,9 @@ function genEnum(
   src.addStatements([
     `import { address, Address } from "@solana/kit" // eslint-disable-line @typescript-eslint/no-unused-vars`,
     `import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars`,
-    `import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+    `import * as types from "../types/index${fileExtension}" // eslint-disable-line @typescript-eslint/no-unused-vars`,
     `import * as borsh from "@coral-xyz/borsh"`,
-    `import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+    `import { borshAddress } from "../utils/index${fileExtension}" // eslint-disable-line @typescript-eslint/no-unused-vars`,
   ])
 
   // variants
