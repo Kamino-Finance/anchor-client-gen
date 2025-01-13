@@ -24,12 +24,18 @@ async function main() {
       "--program-id <PROGRAM_ID>",
       "optional program ID to be included in the code"
     )
+    .option("--file-extension <extension>", "file extension to use", ".js")
     .version("anchor-client-gen 0.28.1")
     .parse()
 
   const idlPath = program.args[0]
   const outBase = program.args[1]
   const programIdOpt: string | null = program.opts().programId || null
+
+  let extension = program.opts().fileExtension
+  if (extension && extension[0] !== ".") {
+    extension = `.${extension}`
+  }
 
   function outPath(filePath: string) {
     return path.join(outBase, filePath)
@@ -41,17 +47,17 @@ async function main() {
   const project = new Project()
 
   console.log("generating utils...")
-  genUtils(project, outPath)
+  genUtils(project, outPath, extension)
   console.log("generating programId.ts...")
   genProgramId(project, idl, programIdOpt, outPath)
   console.log("generating errors...")
-  genErrors(project, idl, outPath)
+  genErrors(project, idl, outPath, extension)
   console.log("generating instructions...")
-  genInstructions(project, idl, outPath)
+  genInstructions(project, idl, outPath, extension)
   console.log("generating types...")
-  genTypes(project, idl, outPath)
+  genTypes(project, idl, outPath, extension)
   console.log("generating accounts...")
-  genAccounts(project, idl, outPath)
+  genAccounts(project, idl, outPath, extension)
 
   const files = project.getSourceFiles()
 

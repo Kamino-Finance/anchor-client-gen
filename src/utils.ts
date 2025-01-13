@@ -1,17 +1,25 @@
 import { Project, VariableDeclarationKind } from "ts-morph"
 
-export function genUtils(project: Project, outPath: (path: string) => string) {
-  genIndex(project, outPath)
+export function genUtils(
+  project: Project,
+  outPath: (path: string) => string,
+  fileExtension: string
+) {
+  genIndex(project, outPath, fileExtension)
   genBorshAddressLayout(project, outPath)
 }
 
-function genIndex(project: Project, outPath: (path: string) => string) {
+function genIndex(
+  project: Project,
+  outPath: (path: string) => string,
+  fileExtension: string
+) {
   const src = project.createSourceFile(outPath("utils/index.ts"), "", {
     overwrite: true,
   })
 
   src.addExportDeclaration({
-    moduleSpecifier: "./borshAddress",
+    moduleSpecifier: `./borshAddress${fileExtension}`,
   })
 }
 

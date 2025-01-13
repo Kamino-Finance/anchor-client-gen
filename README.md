@@ -31,6 +31,7 @@ Arguments:
 
 Options:
   --program-id <PROGRAM_ID>  optional program ID to be included in the code
+  --file-extension <ext>     file extension for generated import and export statements (default: "js") - use '' for no extension
   -V, --version              output the version number
   -h, --help                 display help for command
 ```
@@ -248,6 +249,20 @@ The client generator pulls the program ID from:
 These are then written into the `programId.ts` file.
 
 The `PROGRAM_ID` constant inside `programId.ts` can be (and should be) modified to define the correct program ID as the client relies on it to do checks when fetching accounts etc. The `PROGRAM_ID` constant is safe to modify as it will be preserved across multiple code generations. The imports in this file are also preserved.
+
+## File extension
+
+The `--file-extension` flag can be used to specify the file extension for generated import and export statements. The default value is `js` (compatible with CJS and ESM). Use `''` for no extension.
+
+- default:
+```ts
+export { State } from "./State.js"
+```
+
+- with `--file-extension ''`:
+```ts
+export { State } from "./State"
+```
 
 ## Versioning
 

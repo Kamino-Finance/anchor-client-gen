@@ -12,41 +12,37 @@ import {
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { borshAddress } from "../utils/index.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from "../types/index.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId.js"
 
-export interface CounterFields {
-  authority: Address
-  count: BN
+export interface State2Fields {
+  vecOfOption: Array<BN | null>
 }
 
-export interface CounterJSON {
-  authority: string
-  count: string
+export interface State2JSON {
+  vecOfOption: Array<string | null>
 }
 
-export class Counter {
-  readonly authority: Address
-  readonly count: BN
+export class State2 {
+  readonly vecOfOption: Array<BN | null>
 
   static readonly discriminator = Buffer.from([
-    255, 176, 4, 245, 188, 253, 124, 25,
+    106, 97, 255, 161, 250, 205, 185, 192,
   ])
 
-  static readonly layout = borsh.struct<Counter>([
-    borshAddress("authority"),
-    borsh.u64("count"),
+  static readonly layout = borsh.struct<State2>([
+    borsh.vec(borsh.option(borsh.u64()), "vecOfOption"),
   ])
 
-  constructor(fields: CounterFields) {
-    this.authority = fields.authority
-    this.count = fields.count
+  constructor(fields: State2Fields) {
+    this.vecOfOption = fields.vecOfOption
   }
 
   static async fetch(
     rpc: Rpc<GetAccountInfoApi>,
     address: Address,
     programId: Address = PROGRAM_ID
-  ): Promise<Counter | null> {
+  ): Promise<State2 | null> {
     const info = await fetchEncodedAccount(rpc, address)
 
     if (!info.exists) {
@@ -63,7 +59,7 @@ export class Counter {
     rpc: Rpc<GetMultipleAccountsApi>,
     addresses: Address[],
     programId: Address = PROGRAM_ID
-  ): Promise<Array<Counter | null>> {
+  ): Promise<Array<State2 | null>> {
     const infos = await fetchEncodedAccounts(rpc, addresses)
 
     return infos.map((info) => {
@@ -78,30 +74,31 @@ export class Counter {
     })
   }
 
-  static decode(data: Buffer): Counter {
-    if (!data.slice(0, 8).equals(Counter.discriminator)) {
+  static decode(data: Buffer): State2 {
+    if (!data.slice(0, 8).equals(State2.discriminator)) {
       throw new Error("invalid account discriminator")
     }
 
-    const dec = Counter.layout.decode(data.slice(8))
+    const dec = State2.layout.decode(data.slice(8))
 
-    return new Counter({
-      authority: dec.authority,
-      count: dec.count,
+    return new State2({
+      vecOfOption: dec.vecOfOption,
     })
   }
 
-  toJSON(): CounterJSON {
+  toJSON(): State2JSON {
     return {
-      authority: this.authority,
-      count: this.count.toString(),
+      vecOfOption: this.vecOfOption.map(
+        (item) => (item && item.toString()) || null
+      ),
     }
   }
 
-  static fromJSON(obj: CounterJSON): Counter {
-    return new Counter({
-      authority: address(obj.authority),
-      count: new BN(obj.count),
+  static fromJSON(obj: State2JSON): State2 {
+    return new State2({
+      vecOfOption: obj.vecOfOption.map(
+        (item) => (item && new BN(item)) || null
+      ),
     })
   }
 }

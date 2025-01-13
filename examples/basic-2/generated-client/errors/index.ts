@@ -1,6 +1,6 @@
 import { Address } from "@solana/kit"
-import { PROGRAM_ID } from "../programId"
-import * as anchor from "./anchor"
+import { PROGRAM_ID } from "../programId.js"
+import * as anchor from "./anchor.js"
 
 export function fromCode(
   code: number,

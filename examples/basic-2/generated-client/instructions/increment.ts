@@ -11,8 +11,8 @@ import {
 /* eslint-enable @typescript-eslint/no-unused-vars */
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
-import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars
-import { PROGRAM_ID } from "../programId"
+import { borshAddress } from "../utils/index.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import { PROGRAM_ID } from "../programId.js"
 
 export interface IncrementAccounts {
   counter: Address

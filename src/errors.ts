@@ -9,9 +9,10 @@ import {
 export function genErrors(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
-  genIndex(project, idl, outPath)
+  genIndex(project, idl, outPath, fileExtension)
   genCustomErrors(project, idl, outPath)
   genAnchorErrors(project, idl, outPath)
 }
@@ -19,7 +20,8 @@ export function genErrors(
 export function genIndex(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   const src = project.createSourceFile(outPath("errors/index.ts"), "", {
     overwrite: true,
@@ -29,16 +31,16 @@ export function genIndex(
   src.addStatements([`import { Address } from "@solana/kit"`])
   src.addImportDeclaration({
     namedImports: ["PROGRAM_ID"],
-    moduleSpecifier: "../programId",
+    moduleSpecifier: `../programId${fileExtension}`,
   })
   src.addImportDeclaration({
     namespaceImport: "anchor",
-    moduleSpecifier: "./anchor",
+    moduleSpecifier: `./anchor${fileExtension}`,
   })
   if (hasCustomErrors) {
     src.addImportDeclaration({
       namespaceImport: "custom",
-      moduleSpecifier: "./custom",
+      moduleSpecifier: `./custom${fileExtension}`,
     })
   }
 
