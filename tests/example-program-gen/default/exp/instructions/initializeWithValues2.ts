@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Address,
   isSome,
@@ -7,45 +6,46 @@ import {
   IInstruction,
   Option,
   TransactionSigner,
-} from "@solana/kit"
-/* eslint-enable @typescript-eslint/no-unused-vars */
+} from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { borshAddress } from "../utils/index.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as types from "../types/index.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId.js"
 
-export interface SetupGameArgs {
-  playerTwo: Address
+export interface InitializeWithValues2Args {
+  vecOfOption: Array<BN | null>
 }
 
-export interface SetupGameAccounts {
-  game: TransactionSigner
-  playerOne: TransactionSigner
+export interface InitializeWithValues2Accounts {
+  state: TransactionSigner
+  payer: TransactionSigner
   systemProgram: Address
 }
 
-export const layout = borsh.struct([borshAddress("playerTwo")])
+export const layout = borsh.struct([
+  borsh.vec(borsh.option(borsh.u64()), "vecOfOption"),
+])
 
-export function setupGame(
-  args: SetupGameArgs,
-  accounts: SetupGameAccounts,
+/**
+ * a separate instruction due to initialize_with_values having too many arguments
+ * https://github.com/solana-labs/solana/issues/23978
+ */
+export function initializeWithValues2(
+  args: InitializeWithValues2Args,
+  accounts: InitializeWithValues2Accounts,
   programAddress: Address = PROGRAM_ID
 ) {
   const keys: Array<IAccountMeta | IAccountSignerMeta> = [
-    { address: accounts.game.address, role: 3, signer: accounts.game },
-    {
-      address: accounts.playerOne.address,
-      role: 3,
-      signer: accounts.playerOne,
-    },
+    { address: accounts.state.address, role: 3, signer: accounts.state },
+    { address: accounts.payer.address, role: 3, signer: accounts.payer },
     { address: accounts.systemProgram, role: 0 },
   ]
-  const identifier = Buffer.from([180, 218, 128, 75, 58, 222, 35, 82])
+  const identifier = Buffer.from([248, 190, 21, 97, 239, 148, 39, 181])
   const buffer = Buffer.alloc(1000)
   const len = layout.encode(
     {
-      playerTwo: args.playerTwo,
+      vecOfOption: args.vecOfOption,
     },
     buffer
   )

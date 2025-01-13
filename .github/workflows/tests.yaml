@@ -50,7 +50,7 @@ jobs:
       # ESLint and Prettier must be in `package.json`
       - name: Install Node.js dependencies
         run: yarn --frozen-lockfile
-      - run: cp -r tests/example-program-gen/{exp,act}
+      - run: cp -r tests/example-program-gen/**/{exp,act}
       - name: Run eslint
         run: yarn run lint
       - name: Run tsc check

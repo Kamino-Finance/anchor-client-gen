@@ -12,14 +12,15 @@ import { AccountRole } from "@solana/kit"
 export function genInstructions(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   if (idl.instructions.length === 0) {
     return
   }
 
-  genIndexFile(project, idl, outPath)
-  genInstructionFiles(project, idl, outPath)
+  genIndexFile(project, idl, outPath, fileExtension)
+  genInstructionFiles(project, idl, outPath, fileExtension)
 }
 
 function capitalize(s: string): string {
@@ -37,7 +38,8 @@ function accountsInterfaceName(ixName: string) {
 function genIndexFile(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   const src = project.createSourceFile(outPath("instructions/index.ts"), "", {
     overwrite: true,
@@ -46,7 +48,7 @@ function genIndexFile(
   idl.instructions.forEach((ix) => {
     src.addExportDeclaration({
       namedExports: [ix.name],
-      moduleSpecifier: `./${ix.name}`,
+      moduleSpecifier: `./${ix.name}${fileExtension}`,
     })
 
     const typeExports: string[] = []
@@ -60,7 +62,7 @@ function genIndexFile(
       src.addExportDeclaration({
         namedExports: typeExports,
         isTypeOnly: true,
-        moduleSpecifier: `./${ix.name}`,
+        moduleSpecifier: `./${ix.name}${fileExtension}`,
       })
     }
   })
@@ -69,7 +71,8 @@ function genIndexFile(
 function genInstructionFiles(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   idl.instructions.forEach((ix) => {
     const src = project.createSourceFile(
@@ -87,13 +90,13 @@ function genInstructionFiles(
       `/* eslint-enable @typescript-eslint/no-unused-vars */`,
       `import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars`,
       `import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars`,
-      `import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+      `import { borshAddress } from "../utils/index${fileExtension}" // eslint-disable-line @typescript-eslint/no-unused-vars`,
       ...(idl.types && idl.types.length > 0
         ? [
-            `import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+            `import * as types from "../types/index${fileExtension}" // eslint-disable-line @typescript-eslint/no-unused-vars`,
           ]
         : []),
-      `import { PROGRAM_ID } from "../programId"`,
+      `import { PROGRAM_ID } from "../programId${fileExtension}"`,
     ])
 
     // args interface
