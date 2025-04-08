@@ -140,7 +140,9 @@ export function tsTypeFromIdl(
   }
 
   unreachable(ty)
-  throw new Error("Unreachable.")
+  throw new Error(
+    `Unreachable tsTypeFromIdl type: ${ty}, definedTypesPrefix: ${definedTypesPrefix}, useFieldsInterfaceForStruct: ${useFieldsInterfaceForStruct}`
+  )
 }
 
 export function layoutForType(
@@ -216,7 +218,9 @@ export function layoutForType(
   }
 
   unreachable(ty)
-  throw new Error("Unreachable.")
+  throw new Error(
+    `Unreachable type: ${ty}, property: ${property}, definedTypesPrefix: ${definedTypesPrefix}`
+  )
 }
 
 export function genIxIdentifier(ixName: string) {
@@ -331,7 +335,9 @@ export function fieldToEncodable(
       }
 
       unreachable(ty.type)
-      throw new Error("Unreachable.")
+      throw new Error(
+        `Unreachable fieldToEncodable field: ${ty.name}, type: ${ty.type}`
+      )
   }
 }
 
@@ -433,7 +439,7 @@ export function fieldFromDecoded(
       }
 
       unreachable(ty.type)
-      throw new Error("Unreachable.")
+      throw new Error("Unreachable fieldFromDecoded")
   }
 }
 
@@ -631,13 +637,13 @@ export function fieldToJSON(idl: Idl, ty: IdlField, valPrefix = ""): string {
             throw new Error("alias layout support not implemented")
           default: {
             unreachable(filtered[0].type)
-            throw new Error("Unreachable.")
+            throw new Error("Unreachable fieldToJSON complex type")
           }
         }
       }
 
       unreachable(ty.type)
-      throw new Error("Unreachable.")
+      throw new Error("Unreachable fieldToJSON")
   }
 }
 
@@ -690,7 +696,7 @@ export function idlTypeToJSONType(
       }
 
       unreachable(ty)
-      throw new Error("Unreachable.")
+      throw new Error("Unreachable idlTypeToJSONType")
   }
 }
 
