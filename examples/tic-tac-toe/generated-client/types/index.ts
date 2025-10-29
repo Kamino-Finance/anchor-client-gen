@@ -1,8 +1,8 @@
-import * as GameState from "./GameState"
-import * as Sign from "./Sign"
+import * as GameState from "./GameState.js"
+import * as Sign from "./Sign.js"
 
-export { Tile } from "./Tile"
-export type { TileFields, TileJSON } from "./Tile"
+export { Tile } from "./Tile.js"
+export type { TileFields, TileJSON } from "./Tile.js"
 export { GameState }
 
 export type GameStateKind = GameState.Active | GameState.Tie | GameState.Won

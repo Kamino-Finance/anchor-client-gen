@@ -1,1 +1,1 @@
-export * from "./borshAddress"
+export * from "./borshAddress.js"

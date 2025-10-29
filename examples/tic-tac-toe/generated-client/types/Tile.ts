@@ -1,8 +1,8 @@
-import { address, Address } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import { address, Address } from "@solana/kit" // eslint-disable-line @typescript-eslint/no-unused-vars
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from "../types/index.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as borsh from "@coral-xyz/borsh"
-import { borshAddress } from "../utils"
+import { borshAddress } from "../utils/index.js"
 
 export interface TileFields {
   row: number

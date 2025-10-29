@@ -1,0 +1,69 @@
+import { address, Address } from "@solana/kit" // eslint-disable-line @typescript-eslint/no-unused-vars
+import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from "../types/index.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from "@coral-xyz/borsh"
+import { borshAddress } from "../utils/index.js"
+
+export interface BarStructFields {
+  /** Some field */
+  someField: boolean
+  otherField: number
+}
+
+export interface BarStructJSON {
+  /** Some field */
+  someField: boolean
+  otherField: number
+}
+
+/** Bar struct type */
+export class BarStruct {
+  /** Some field */
+  readonly someField: boolean
+  readonly otherField: number
+
+  constructor(fields: BarStructFields) {
+    this.someField = fields.someField
+    this.otherField = fields.otherField
+  }
+
+  static layout(property?: string) {
+    return borsh.struct(
+      [borsh.bool("someField"), borsh.u8("otherField")],
+      property
+    )
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  static fromDecoded(obj: any) {
+    return new BarStruct({
+      someField: obj.someField,
+      otherField: obj.otherField,
+    })
+  }
+
+  static toEncodable(fields: BarStructFields) {
+    return {
+      someField: fields.someField,
+      otherField: fields.otherField,
+    }
+  }
+
+  toJSON(): BarStructJSON {
+    return {
+      someField: this.someField,
+      otherField: this.otherField,
+    }
+  }
+
+  static fromJSON(obj: BarStructJSON): BarStruct {
+    return new BarStruct({
+      someField: obj.someField,
+      otherField: obj.otherField,
+    })
+  }
+
+  toEncodable() {
+    return BarStruct.toEncodable(this)
+  }
+}

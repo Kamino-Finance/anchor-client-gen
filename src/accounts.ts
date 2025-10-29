@@ -16,20 +16,22 @@ import {
 export function genAccounts(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   if (idl.accounts === undefined || idl.accounts.length === 0) {
     return
   }
 
-  genIndexFile(project, idl, outPath)
-  genAccountFiles(project, idl, outPath)
+  genIndexFile(project, idl, outPath, fileExtension)
+  genAccountFiles(project, idl, outPath, fileExtension)
 }
 
 function genIndexFile(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   const src = project.createSourceFile(outPath("accounts/index.ts"), "", {
     overwrite: true,
@@ -38,12 +40,12 @@ function genIndexFile(
   idl.accounts?.forEach((ix) => {
     src.addExportDeclaration({
       namedExports: [ix.name],
-      moduleSpecifier: `./${ix.name}`,
+      moduleSpecifier: `./${ix.name}${fileExtension}`,
     })
     src.addExportDeclaration({
       namedExports: [fieldsInterfaceName(ix.name), jsonInterfaceName(ix.name)],
       isTypeOnly: true,
-      moduleSpecifier: `./${ix.name}`,
+      moduleSpecifier: `./${ix.name}${fileExtension}`,
     })
   })
 }
@@ -51,7 +53,8 @@ function genIndexFile(
 function genAccountFiles(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   idl.accounts?.forEach((acc) => {
     const src = project.createSourceFile(
@@ -64,16 +67,18 @@ function genAccountFiles(
 
     // imports
     src.addStatements([
-      `import { address, Address, fetchEncodedAccount, fetchEncodedAccounts, GetAccountInfoApi, GetMultipleAccountsApi, Rpc } from "@solana/web3.js"`,
+      `/* eslint-disable @typescript-eslint/no-unused-vars */`,
+      `import { address, Address, fetchEncodedAccount, fetchEncodedAccounts, GetAccountInfoApi, GetMultipleAccountsApi, Rpc } from "@solana/kit"`,
+      `/* eslint-enable @typescript-eslint/no-unused-vars */`,
       `import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars`,
       `import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars`,
-      `import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+      `import { borshAddress } from "../utils/index${fileExtension}" // eslint-disable-line @typescript-eslint/no-unused-vars`,
       ...(idl.types && idl.types.length > 0
         ? [
-            `import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+            `import * as types from "../types/index${fileExtension}" // eslint-disable-line @typescript-eslint/no-unused-vars`,
           ]
         : []),
-      `import { PROGRAM_ID } from "../programId"`,
+      `import { PROGRAM_ID } from "../programId${fileExtension}"`,
     ])
 
     const fields = acc.type.fields
@@ -198,7 +203,9 @@ function genAccountFiles(
           writer.write("if (info.programAddress !== programId)")
           writer.inlineBlock(() => {
             writer.writeLine(
-              `throw new Error("account doesn't belong to this program")`
+              `throw new Error(\`${fieldsInterfaceName(
+                name
+              )} account \${address} belongs to wrong program \${info.programAddress}, expected \${programId}\`)`
             )
           })
           writer.blankLine()
@@ -245,7 +252,9 @@ function genAccountFiles(
             writer.write("if (info.programAddress !== programId)")
             writer.inlineBlock(() => {
               writer.writeLine(
-                `throw new Error("account doesn't belong to this program")`
+                `throw new Error(\`${fieldsInterfaceName(
+                  name
+                )} account \${info.address} belongs to wrong program \${info.programAddress}, expected \${programId}\`)`
               )
             })
             writer.blankLine()

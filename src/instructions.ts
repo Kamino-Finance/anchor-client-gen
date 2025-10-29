@@ -7,19 +7,20 @@ import {
   layoutForType,
   tsTypeFromIdl,
 } from "./common"
-import { AccountRole } from "@solana/web3.js"
+import { AccountRole } from "@solana/kit"
 
 export function genInstructions(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   if (idl.instructions.length === 0) {
     return
   }
 
-  genIndexFile(project, idl, outPath)
-  genInstructionFiles(project, idl, outPath)
+  genIndexFile(project, idl, outPath, fileExtension)
+  genInstructionFiles(project, idl, outPath, fileExtension)
 }
 
 function capitalize(s: string): string {
@@ -37,7 +38,8 @@ function accountsInterfaceName(ixName: string) {
 function genIndexFile(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   const src = project.createSourceFile(outPath("instructions/index.ts"), "", {
     overwrite: true,
@@ -46,7 +48,7 @@ function genIndexFile(
   idl.instructions.forEach((ix) => {
     src.addExportDeclaration({
       namedExports: [ix.name],
-      moduleSpecifier: `./${ix.name}`,
+      moduleSpecifier: `./${ix.name}${fileExtension}`,
     })
 
     const typeExports: string[] = []
@@ -60,7 +62,7 @@ function genIndexFile(
       src.addExportDeclaration({
         namedExports: typeExports,
         isTypeOnly: true,
-        moduleSpecifier: `./${ix.name}`,
+        moduleSpecifier: `./${ix.name}${fileExtension}`,
       })
     }
   })
@@ -69,7 +71,8 @@ function genIndexFile(
 function genInstructionFiles(
   project: Project,
   idl: Idl,
-  outPath: (path: string) => string
+  outPath: (path: string) => string,
+  fileExtension: string
 ) {
   idl.instructions.forEach((ix) => {
     const src = project.createSourceFile(
@@ -82,17 +85,31 @@ function genInstructionFiles(
 
     // imports
     src.addStatements([
-      `import { Address, isSome, IAccountMeta, IAccountSignerMeta, IInstruction, Option, TransactionSigner } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+      `/* eslint-disable @typescript-eslint/no-unused-vars */`,
+      `import { Address, isSome, AccountMeta, AccountSignerMeta, Instruction, Option, TransactionSigner } from "@solana/kit"`,
+      `/* eslint-enable @typescript-eslint/no-unused-vars */`,
       `import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars`,
       `import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars`,
-      `import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+      `import { borshAddress } from "../utils/index${fileExtension}" // eslint-disable-line @typescript-eslint/no-unused-vars`,
       ...(idl.types && idl.types.length > 0
         ? [
-            `import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+            `import * as types from "../types/index${fileExtension}" // eslint-disable-line @typescript-eslint/no-unused-vars`,
           ]
         : []),
-      `import { PROGRAM_ID } from "../programId"`,
+      `import { PROGRAM_ID } from "../programId${fileExtension}"`,
     ])
+
+    // ix discriminator
+    src.addVariableStatement({
+      isExported: true,
+      declarationKind: VariableDeclarationKind.Const,
+      declarations: [
+        {
+          name: "DISCRIMINATOR",
+          initializer: `Buffer.from([${genIxIdentifier(ix.name).toString()}])`,
+        },
+      ],
+    })
 
     // args interface
     if (ix.args.length > 0) {
@@ -196,6 +213,11 @@ function genInstructionFiles(
       })
     }
     ixFn.addParameter({
+      name: "remainingAccounts",
+      type: "Array<AccountMeta | AccountSignerMeta>",
+      initializer: "[]",
+    })
+    ixFn.addParameter({
       name: "programAddress",
       type: "Address",
       initializer: "PROGRAM_ID",
@@ -207,7 +229,7 @@ function genInstructionFiles(
       declarations: [
         {
           name: "keys",
-          type: "Array<IAccountMeta | IAccountSignerMeta>",
+          type: "Array<AccountMeta | AccountSignerMeta>",
           initializer: (writer) => {
             writer.write("[")
 
@@ -295,21 +317,15 @@ function genInstructionFiles(
               })
             }
 
+            function getRemainingAccounts() {
+              writer.writeLine("...remainingAccounts,")
+            }
+
             recurseAccounts(ix.accounts, [])
+            getRemainingAccounts()
 
             writer.write("]")
           },
-        },
-      ],
-    })
-
-    // identifier
-    ixFn.addVariableStatement({
-      declarationKind: VariableDeclarationKind.Const,
-      declarations: [
-        {
-          name: "identifier",
-          initializer: `Buffer.from([${genIxIdentifier(ix.name).toString()}])`,
         },
       ],
     })
@@ -350,7 +366,7 @@ function genInstructionFiles(
           {
             name: "data",
             initializer:
-              "Buffer.concat([identifier, buffer]).slice(0, 8 + len)",
+              "Buffer.concat([DISCRIMINATOR, buffer]).slice(0, 8 + len)",
           },
         ],
       })
@@ -360,7 +376,7 @@ function genInstructionFiles(
         declarations: [
           {
             name: "data",
-            initializer: "identifier",
+            initializer: "DISCRIMINATOR",
           },
         ],
       })
@@ -372,7 +388,7 @@ function genInstructionFiles(
       declarations: [
         {
           name: "ix",
-          type: "IInstruction",
+          type: "Instruction",
           initializer: "{ accounts: keys, programAddress, data }",
         },
       ],
