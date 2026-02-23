@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   address,
   Address,
@@ -6,9 +7,9 @@ import {
   GetAccountInfoApi,
   GetMultipleAccountsApi,
   Rpc,
-} from "@solana/web3.js"
-import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+} from "@solana/kit"
+/* eslint-enable @typescript-eslint/no-unused-vars */
+import * as borsh from "../utils/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
@@ -23,15 +24,15 @@ export interface StateFields {
   u32Field: number
   i32Field: number
   f32Field: number
-  u64Field: BN
-  i64Field: BN
+  u64Field: bigint
+  i64Field: bigint
   f64Field: number
-  u128Field: BN
-  i128Field: BN
+  u128Field: bigint
+  i128Field: bigint
   bytesField: Uint8Array
   stringField: string
   pubkeyField: Address
-  vecField: Array<BN>
+  vecField: Array<bigint>
   vecStructField: Array<types.FooStructFields>
   optionField: boolean | null
   optionStructField: types.FooStructFields | null
@@ -41,6 +42,7 @@ export interface StateFields {
   enumField2: types.FooEnumKind
   enumField3: types.FooEnumKind
   enumField4: types.FooEnumKind
+  cStyleEnumField: types.CStyleEnumKind
 }
 
 export interface StateJSON {
@@ -71,6 +73,7 @@ export interface StateJSON {
   enumField2: types.FooEnumJSON
   enumField3: types.FooEnumJSON
   enumField4: types.FooEnumJSON
+  cStyleEnumField: types.CStyleEnumJSON
 }
 
 /** An account containing various fields */
@@ -84,15 +87,15 @@ export class State {
   readonly u32Field: number
   readonly i32Field: number
   readonly f32Field: number
-  readonly u64Field: BN
-  readonly i64Field: BN
+  readonly u64Field: bigint
+  readonly i64Field: bigint
   readonly f64Field: number
-  readonly u128Field: BN
-  readonly i128Field: BN
+  readonly u128Field: bigint
+  readonly i128Field: bigint
   readonly bytesField: Uint8Array
   readonly stringField: string
   readonly pubkeyField: Address
-  readonly vecField: Array<BN>
+  readonly vecField: Array<bigint>
   readonly vecStructField: Array<types.FooStruct>
   readonly optionField: boolean | null
   readonly optionStructField: types.FooStruct | null
@@ -102,8 +105,9 @@ export class State {
   readonly enumField2: types.FooEnumKind
   readonly enumField3: types.FooEnumKind
   readonly enumField4: types.FooEnumKind
+  readonly cStyleEnumField: types.CStyleEnumKind
 
-  static readonly discriminator = Buffer.from([
+  static readonly discriminator = new Uint8Array([
     216, 146, 107, 94, 104, 75, 182, 177,
   ])
 
@@ -134,6 +138,7 @@ export class State {
     types.FooEnum.layout("enumField2"),
     types.FooEnum.layout("enumField3"),
     types.FooEnum.layout("enumField4"),
+    types.CStyleEnum.layout("cStyleEnumField"),
   ])
 
   constructor(fields: StateFields) {
@@ -168,6 +173,7 @@ export class State {
     this.enumField2 = fields.enumField2
     this.enumField3 = fields.enumField3
     this.enumField4 = fields.enumField4
+    this.cStyleEnumField = fields.cStyleEnumField
   }
 
   static async fetch(
@@ -181,10 +187,12 @@ export class State {
       return null
     }
     if (info.programAddress !== programId) {
-      throw new Error("account doesn't belong to this program")
+      throw new Error(
+        `StateFields account ${address} belongs to wrong program ${info.programAddress}, expected ${programId}`
+      )
     }
 
-    return this.decode(Buffer.from(info.data))
+    return this.decode(new Uint8Array(info.data))
   }
 
   static async fetchMultiple(
@@ -199,19 +207,26 @@ export class State {
         return null
       }
       if (info.programAddress !== programId) {
-        throw new Error("account doesn't belong to this program")
+        throw new Error(
+          `StateFields account ${info.address} belongs to wrong program ${info.programAddress}, expected ${programId}`
+        )
       }
 
-      return this.decode(Buffer.from(info.data))
+      return this.decode(new Uint8Array(info.data))
     })
   }
 
-  static decode(data: Buffer): State {
-    if (!data.slice(0, 8).equals(State.discriminator)) {
+  static decode(data: Uint8Array): State {
+    if (data.length < State.discriminator.length) {
       throw new Error("invalid account discriminator")
     }
+    for (let i = 0; i < State.discriminator.length; i++) {
+      if (data[i] !== State.discriminator[i]) {
+        throw new Error("invalid account discriminator")
+      }
+    }
 
-    const dec = State.layout.decode(data.slice(8))
+    const dec = State.layout.decode(data.subarray(State.discriminator.length))
 
     return new State({
       boolField: dec.boolField,
@@ -227,11 +242,7 @@ export class State {
       f64Field: dec.f64Field,
       u128Field: dec.u128Field,
       i128Field: dec.i128Field,
-      bytesField: new Uint8Array(
-        dec.bytesField.buffer,
-        dec.bytesField.byteOffset,
-        dec.bytesField.length
-      ),
+      bytesField: dec.bytesField,
       stringField: dec.stringField,
       pubkeyField: dec.pubkeyField,
       vecField: dec.vecField,
@@ -251,6 +262,7 @@ export class State {
       enumField2: types.FooEnum.fromDecoded(dec.enumField2),
       enumField3: types.FooEnum.fromDecoded(dec.enumField3),
       enumField4: types.FooEnum.fromDecoded(dec.enumField4),
+      cStyleEnumField: types.CStyleEnum.fromDecoded(dec.cStyleEnumField),
     })
   }
 
@@ -283,6 +295,7 @@ export class State {
       enumField2: this.enumField2.toJSON(),
       enumField3: this.enumField3.toJSON(),
       enumField4: this.enumField4.toJSON(),
+      cStyleEnumField: this.cStyleEnumField.toJSON(),
     }
   }
 
@@ -296,15 +309,15 @@ export class State {
       u32Field: obj.u32Field,
       i32Field: obj.i32Field,
       f32Field: obj.f32Field,
-      u64Field: new BN(obj.u64Field),
-      i64Field: new BN(obj.i64Field),
+      u64Field: BigInt(obj.u64Field),
+      i64Field: BigInt(obj.i64Field),
       f64Field: obj.f64Field,
-      u128Field: new BN(obj.u128Field),
-      i128Field: new BN(obj.i128Field),
+      u128Field: BigInt(obj.u128Field),
+      i128Field: BigInt(obj.i128Field),
       bytesField: Uint8Array.from(obj.bytesField),
       stringField: obj.stringField,
       pubkeyField: address(obj.pubkeyField),
-      vecField: obj.vecField.map((item) => new BN(item)),
+      vecField: obj.vecField.map((item) => BigInt(item)),
       vecStructField: obj.vecStructField.map((item) =>
         types.FooStruct.fromJSON(item)
       ),
@@ -319,6 +332,7 @@ export class State {
       enumField2: types.FooEnum.fromJSON(obj.enumField2),
       enumField3: types.FooEnum.fromJSON(obj.enumField3),
       enumField4: types.FooEnum.fromJSON(obj.enumField4),
+      cStyleEnumField: types.CStyleEnum.fromJSON(obj.cStyleEnumField),
     })
   }
 }

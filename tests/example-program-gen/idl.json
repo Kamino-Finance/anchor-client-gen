@@ -221,6 +221,12 @@
           "type": {
             "defined": "FooEnum"
           }
+        },
+        {
+          "name": "cStyleEnumField",
+          "type": {
+            "defined": "CStyleEnum"
+          }
         }
       ]
     },
@@ -307,6 +313,27 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "remaining",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "expectedRemainingAccounts",
+          "type": "u32"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -475,6 +502,12 @@
             "type": {
               "defined": "FooEnum"
             }
+          },
+          {
+            "name": "cStyleEnumField",
+            "type": {
+              "defined": "CStyleEnum"
+            }
           }
         ]
       }
@@ -515,6 +548,26 @@
           {
             "name": "otherField",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CStyleEnum",
+      "docs": [
+        "C-style enum type"
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "First"
+          },
+          {
+            "name": "Second"
+          },
+          {
+            "name": "Third"
           }
         ]
       }
@@ -615,6 +668,10 @@
             "type": "u16"
           },
           {
+            "name": "field3",
+            "type": "u64"
+          },
+          {
             "name": "nested",
             "type": {
               "defined": "BarStruct"
@@ -664,6 +721,11 @@
     {
       "code": 6002,
       "name": "ErrorWithoutMsg"
+    },
+    {
+      "code": 6003,
+      "name": "RemainingAccountsMismatch",
+      "msg": "Remaining accounts mismatch."
     }
   ]
 }

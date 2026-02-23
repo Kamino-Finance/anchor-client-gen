@@ -1,17 +1,22 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Address,
   isSome,
-  IAccountMeta,
-  IAccountSignerMeta,
-  IInstruction,
+  AccountMeta,
+  AccountSignerMeta,
+  Instruction,
   Option,
   TransactionSigner,
-} from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+} from "@solana/kit"
+/* eslint-enable @typescript-eslint/no-unused-vars */
+import * as borsh from "../utils/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
+
+export const DISCRIMINATOR = new Uint8Array([
+  220, 73, 8, 213, 178, 69, 181, 141,
+])
 
 export interface InitializeWithValuesArgs {
   boolField: boolean
@@ -22,15 +27,15 @@ export interface InitializeWithValuesArgs {
   u32Field: number
   i32Field: number
   f32Field: number
-  u64Field: BN
-  i64Field: BN
+  u64Field: bigint
+  i64Field: bigint
   f64Field: number
-  u128Field: BN
-  i128Field: BN
+  u128Field: bigint
+  i128Field: bigint
   bytesField: Uint8Array
   stringField: string
   pubkeyField: Address
-  vecField: Array<BN>
+  vecField: Array<bigint>
   vecStructField: Array<types.FooStructFields>
   optionField: boolean | null
   optionStructField: types.FooStructFields | null
@@ -40,6 +45,7 @@ export interface InitializeWithValuesArgs {
   enumField2: types.FooEnumKind
   enumField3: types.FooEnumKind
   enumField4: types.FooEnumKind
+  cStyleEnumField: types.CStyleEnumKind
 }
 
 export interface InitializeWithValuesAccounts {
@@ -81,23 +87,25 @@ export const layout = borsh.struct([
   types.FooEnum.layout("enumField2"),
   types.FooEnum.layout("enumField3"),
   types.FooEnum.layout("enumField4"),
+  types.CStyleEnum.layout("cStyleEnumField"),
 ])
 
 /** Initializes an account with specified values */
 export function initializeWithValues(
   args: InitializeWithValuesArgs,
   accounts: InitializeWithValuesAccounts,
+  remainingAccounts: Array<AccountMeta | AccountSignerMeta> = [],
   programAddress: Address = PROGRAM_ID
 ) {
-  const keys: Array<IAccountMeta | IAccountSignerMeta> = [
+  const keys: Array<AccountMeta | AccountSignerMeta> = [
     { address: accounts.state.address, role: 3, signer: accounts.state },
     { address: accounts.nested.clock, role: 0 },
     { address: accounts.nested.rent, role: 0 },
     { address: accounts.payer.address, role: 3, signer: accounts.payer },
     { address: accounts.systemProgram, role: 0 },
+    ...remainingAccounts,
   ]
-  const identifier = Buffer.from([220, 73, 8, 213, 178, 69, 181, 141])
-  const buffer = Buffer.alloc(1000)
+  const buffer = new Uint8Array(1000)
   const len = layout.encode(
     {
       boolField: args.boolField,
@@ -113,11 +121,7 @@ export function initializeWithValues(
       f64Field: args.f64Field,
       u128Field: args.u128Field,
       i128Field: args.i128Field,
-      bytesField: Buffer.from(
-        args.bytesField.buffer,
-        args.bytesField.byteOffset,
-        args.bytesField.length
-      ),
+      bytesField: args.bytesField,
       stringField: args.stringField,
       pubkeyField: args.pubkeyField,
       vecField: args.vecField,
@@ -135,10 +139,16 @@ export function initializeWithValues(
       enumField2: args.enumField2.toEncodable(),
       enumField3: args.enumField3.toEncodable(),
       enumField4: args.enumField4.toEncodable(),
+      cStyleEnumField: args.cStyleEnumField.toEncodable(),
     },
     buffer
   )
-  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len)
-  const ix: IInstruction = { accounts: keys, programAddress, data }
+  const data = (() => {
+    const d = new Uint8Array(8 + len)
+    d.set(DISCRIMINATOR)
+    d.set(buffer.subarray(0, len), 8)
+    return d
+  })()
+  const ix: Instruction = { accounts: keys, programAddress, data }
   return ix
 }

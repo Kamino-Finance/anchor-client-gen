@@ -64,9 +64,10 @@ function genAccountFiles(
 
     // imports
     src.addStatements([
-      `import { address, Address, fetchEncodedAccount, fetchEncodedAccounts, GetAccountInfoApi, GetMultipleAccountsApi, Rpc } from "@solana/web3.js"`,
-      `import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars`,
-      `import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+      `/* eslint-disable @typescript-eslint/no-unused-vars */`,
+      `import { address, Address, fetchEncodedAccount, fetchEncodedAccounts, GetAccountInfoApi, GetMultipleAccountsApi, Rpc } from "@solana/kit"`,
+      `/* eslint-enable @typescript-eslint/no-unused-vars */`,
+      `import * as borsh from "../utils/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars`,
       `import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars`,
       ...(idl.types && idl.types.length > 0
         ? [
@@ -126,7 +127,9 @@ function genAccountFiles(
         isStatic: true,
         isReadonly: true,
         name: "discriminator",
-        initializer: `Buffer.from([${genAccDiscriminator(name).toString()}])`,
+        initializer: `new Uint8Array([${genAccDiscriminator(
+          name
+        ).toString()}])`,
       })
       .prependWhitespace("\n")
 
@@ -198,11 +201,13 @@ function genAccountFiles(
           writer.write("if (info.programAddress !== programId)")
           writer.inlineBlock(() => {
             writer.writeLine(
-              `throw new Error("account doesn't belong to this program")`
+              `throw new Error(\`${fieldsInterfaceName(
+                name
+              )} account \${address} belongs to wrong program \${info.programAddress}, expected \${programId}\`)`
             )
           })
           writer.blankLine()
-          writer.writeLine("return this.decode(Buffer.from(info.data))")
+          writer.writeLine("return this.decode(new Uint8Array(info.data))")
         },
       ],
     })
@@ -245,11 +250,13 @@ function genAccountFiles(
             writer.write("if (info.programAddress !== programId)")
             writer.inlineBlock(() => {
               writer.writeLine(
-                `throw new Error("account doesn't belong to this program")`
+                `throw new Error(\`${fieldsInterfaceName(
+                  name
+                )} account \${info.address} belongs to wrong program \${info.programAddress}, expected \${programId}\`)`
               )
             })
             writer.blankLine()
-            writer.writeLine("return this.decode(Buffer.from(info.data))")
+            writer.writeLine("return this.decode(new Uint8Array(info.data))")
           })
           writer.write(")")
         },
@@ -263,18 +270,29 @@ function genAccountFiles(
       parameters: [
         {
           name: "data",
-          type: "Buffer",
+          type: "Uint8Array",
         },
       ],
       returnType: name,
       statements: [
         (writer) => {
-          writer.write(`if (!data.slice(0, 8).equals(${name}.discriminator))`)
+          writer.write(`if (data.length < ${name}.discriminator.length)`)
           writer.inlineBlock(() => {
             writer.writeLine(`throw new Error("invalid account discriminator")`)
           })
+          writer.write(`for (let i = 0; i < ${name}.discriminator.length; i++)`)
+          writer.inlineBlock(() => {
+            writer.write(`if (data[i] !== ${name}.discriminator[i])`)
+            writer.inlineBlock(() => {
+              writer.writeLine(
+                `throw new Error("invalid account discriminator")`
+              )
+            })
+          })
           writer.blankLine()
-          writer.writeLine(`const dec = ${name}.layout.decode(data.slice(8))`)
+          writer.writeLine(
+            `const dec = ${name}.layout.decode(data.subarray(${name}.discriminator.length))`
+          )
 
           writer.blankLine()
           writer.write(`return new ${name}({`)

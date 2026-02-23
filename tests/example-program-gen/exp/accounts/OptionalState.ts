@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   address,
   Address,
@@ -6,9 +7,9 @@ import {
   GetAccountInfoApi,
   GetMultipleAccountsApi,
   Rpc,
-} from "@solana/web3.js"
-import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+} from "@solana/kit"
+/* eslint-enable @typescript-eslint/no-unused-vars */
+import * as borsh from "../utils/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
@@ -33,7 +34,7 @@ export class OptionalState {
   readonly readonlyOption: boolean
   readonly mutableOption: boolean
 
-  static readonly discriminator = Buffer.from([
+  static readonly discriminator = new Uint8Array([
     182, 31, 131, 174, 98, 39, 6, 20,
   ])
 
@@ -62,10 +63,12 @@ export class OptionalState {
       return null
     }
     if (info.programAddress !== programId) {
-      throw new Error("account doesn't belong to this program")
+      throw new Error(
+        `OptionalStateFields account ${address} belongs to wrong program ${info.programAddress}, expected ${programId}`
+      )
     }
 
-    return this.decode(Buffer.from(info.data))
+    return this.decode(new Uint8Array(info.data))
   }
 
   static async fetchMultiple(
@@ -80,19 +83,28 @@ export class OptionalState {
         return null
       }
       if (info.programAddress !== programId) {
-        throw new Error("account doesn't belong to this program")
+        throw new Error(
+          `OptionalStateFields account ${info.address} belongs to wrong program ${info.programAddress}, expected ${programId}`
+        )
       }
 
-      return this.decode(Buffer.from(info.data))
+      return this.decode(new Uint8Array(info.data))
     })
   }
 
-  static decode(data: Buffer): OptionalState {
-    if (!data.slice(0, 8).equals(OptionalState.discriminator)) {
+  static decode(data: Uint8Array): OptionalState {
+    if (data.length < OptionalState.discriminator.length) {
       throw new Error("invalid account discriminator")
     }
+    for (let i = 0; i < OptionalState.discriminator.length; i++) {
+      if (data[i] !== OptionalState.discriminator[i]) {
+        throw new Error("invalid account discriminator")
+      }
+    }
 
-    const dec = OptionalState.layout.decode(data.slice(8))
+    const dec = OptionalState.layout.decode(
+      data.subarray(OptionalState.discriminator.length)
+    )
 
     return new OptionalState({
       readonlySignerOption: dec.readonlySignerOption,

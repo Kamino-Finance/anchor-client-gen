@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   address,
   Address,
@@ -6,15 +7,15 @@ import {
   GetAccountInfoApi,
   GetMultipleAccountsApi,
   Rpc,
-} from "@solana/web3.js"
-import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+} from "@solana/kit"
+/* eslint-enable @typescript-eslint/no-unused-vars */
+import * as borsh from "../utils/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
 
 export interface State2Fields {
-  vecOfOption: Array<BN | null>
+  vecOfOption: Array<bigint | null>
 }
 
 export interface State2JSON {
@@ -22,9 +23,9 @@ export interface State2JSON {
 }
 
 export class State2 {
-  readonly vecOfOption: Array<BN | null>
+  readonly vecOfOption: Array<bigint | null>
 
-  static readonly discriminator = Buffer.from([
+  static readonly discriminator = new Uint8Array([
     106, 97, 255, 161, 250, 205, 185, 192,
   ])
 
@@ -47,10 +48,12 @@ export class State2 {
       return null
     }
     if (info.programAddress !== programId) {
-      throw new Error("account doesn't belong to this program")
+      throw new Error(
+        `State2Fields account ${address} belongs to wrong program ${info.programAddress}, expected ${programId}`
+      )
     }
 
-    return this.decode(Buffer.from(info.data))
+    return this.decode(new Uint8Array(info.data))
   }
 
   static async fetchMultiple(
@@ -65,19 +68,26 @@ export class State2 {
         return null
       }
       if (info.programAddress !== programId) {
-        throw new Error("account doesn't belong to this program")
+        throw new Error(
+          `State2Fields account ${info.address} belongs to wrong program ${info.programAddress}, expected ${programId}`
+        )
       }
 
-      return this.decode(Buffer.from(info.data))
+      return this.decode(new Uint8Array(info.data))
     })
   }
 
-  static decode(data: Buffer): State2 {
-    if (!data.slice(0, 8).equals(State2.discriminator)) {
+  static decode(data: Uint8Array): State2 {
+    if (data.length < State2.discriminator.length) {
       throw new Error("invalid account discriminator")
     }
+    for (let i = 0; i < State2.discriminator.length; i++) {
+      if (data[i] !== State2.discriminator[i]) {
+        throw new Error("invalid account discriminator")
+      }
+    }
 
-    const dec = State2.layout.decode(data.slice(8))
+    const dec = State2.layout.decode(data.subarray(State2.discriminator.length))
 
     return new State2({
       vecOfOption: dec.vecOfOption,
@@ -95,7 +105,7 @@ export class State2 {
   static fromJSON(obj: State2JSON): State2 {
     return new State2({
       vecOfOption: obj.vecOfOption.map(
-        (item) => (item && new BN(item)) || null
+        (item) => (item && BigInt(item)) || null
       ),
     })
   }

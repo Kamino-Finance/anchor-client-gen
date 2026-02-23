@@ -7,7 +7,7 @@ import {
   layoutForType,
   tsTypeFromIdl,
 } from "./common"
-import { AccountRole } from "@solana/web3.js"
+import { AccountRole } from "@solana/kit"
 
 export function genInstructions(
   project: Project,
@@ -82,9 +82,10 @@ function genInstructionFiles(
 
     // imports
     src.addStatements([
-      `import { Address, isSome, IAccountMeta, IAccountSignerMeta, IInstruction, Option, TransactionSigner } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars`,
-      `import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars`,
-      `import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars`,
+      `/* eslint-disable @typescript-eslint/no-unused-vars */`,
+      `import { Address, isSome, AccountMeta, AccountSignerMeta, Instruction, Option, TransactionSigner } from "@solana/kit"`,
+      `/* eslint-enable @typescript-eslint/no-unused-vars */`,
+      `import * as borsh from "../utils/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars`,
       `import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars`,
       ...(idl.types && idl.types.length > 0
         ? [
@@ -93,6 +94,20 @@ function genInstructionFiles(
         : []),
       `import { PROGRAM_ID } from "../programId"`,
     ])
+
+    // ix discriminator
+    src.addVariableStatement({
+      isExported: true,
+      declarationKind: VariableDeclarationKind.Const,
+      declarations: [
+        {
+          name: "DISCRIMINATOR",
+          initializer: `new Uint8Array([${genIxIdentifier(
+            ix.name
+          ).toString()}])`,
+        },
+      ],
+    })
 
     // args interface
     if (ix.args.length > 0) {
@@ -196,6 +211,11 @@ function genInstructionFiles(
       })
     }
     ixFn.addParameter({
+      name: "remainingAccounts",
+      type: "Array<AccountMeta | AccountSignerMeta>",
+      initializer: "[]",
+    })
+    ixFn.addParameter({
       name: "programAddress",
       type: "Address",
       initializer: "PROGRAM_ID",
@@ -207,7 +227,7 @@ function genInstructionFiles(
       declarations: [
         {
           name: "keys",
-          type: "Array<IAccountMeta | IAccountSignerMeta>",
+          type: "Array<AccountMeta | AccountSignerMeta>",
           initializer: (writer) => {
             writer.write("[")
 
@@ -295,21 +315,15 @@ function genInstructionFiles(
               })
             }
 
+            function getRemainingAccounts() {
+              writer.writeLine("...remainingAccounts,")
+            }
+
             recurseAccounts(ix.accounts, [])
+            getRemainingAccounts()
 
             writer.write("]")
           },
-        },
-      ],
-    })
-
-    // identifier
-    ixFn.addVariableStatement({
-      declarationKind: VariableDeclarationKind.Const,
-      declarations: [
-        {
-          name: "identifier",
-          initializer: `Buffer.from([${genIxIdentifier(ix.name).toString()}])`,
         },
       ],
     })
@@ -321,7 +335,7 @@ function genInstructionFiles(
         declarations: [
           {
             name: "buffer",
-            initializer: "Buffer.alloc(1000)", // TODO: use a tighter buffer.
+            initializer: "new Uint8Array(1000)",
           },
         ],
       })
@@ -349,8 +363,14 @@ function genInstructionFiles(
         declarations: [
           {
             name: "data",
-            initializer:
-              "Buffer.concat([identifier, buffer]).slice(0, 8 + len)",
+            initializer: (writer) => {
+              writer.write("(() => {")
+              writer.writeLine("const d = new Uint8Array(8 + len)")
+              writer.writeLine("d.set(DISCRIMINATOR)")
+              writer.writeLine("d.set(buffer.subarray(0, len), 8)")
+              writer.writeLine("return d")
+              writer.write("})()")
+            },
           },
         ],
       })
@@ -360,7 +380,7 @@ function genInstructionFiles(
         declarations: [
           {
             name: "data",
-            initializer: "identifier",
+            initializer: "DISCRIMINATOR",
           },
         ],
       })
@@ -372,7 +392,7 @@ function genInstructionFiles(
       declarations: [
         {
           name: "ix",
-          type: "IInstruction",
+          type: "Instruction",
           initializer: "{ accounts: keys, programAddress, data }",
         },
       ],

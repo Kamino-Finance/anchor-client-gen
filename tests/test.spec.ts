@@ -13,11 +13,15 @@ import {
   createSolanaRpcSubscriptions,
   some,
   none,
-  IInstruction,
+  Instruction,
   TransactionSigner,
-} from "@solana/web3.js"
-import { expect, it } from "vitest"
-import BN from "bn.js"
+  generateKeyPair,
+  AccountRole,
+  getAddressFromPublicKey,
+  assertIsSendableTransaction,
+  assertIsTransactionWithBlockhashLifetime,
+} from "@solana/kit"
+import { describe, expect, it } from "vitest"
 import * as dircompare from "dir-compare"
 import * as fs from "fs"
 import {
@@ -33,6 +37,7 @@ import {
   initializeWithValues,
   initializeWithValues2,
   optional,
+  remaining,
 } from "./example-program-gen/act/instructions"
 import { BarStruct, FooStruct } from "./example-program-gen/act/types"
 import {
@@ -41,6 +46,7 @@ import {
   Struct,
   Unnamed,
 } from "./example-program-gen/act/types/FooEnum"
+import { Second, Third } from "./example-program-gen/act/types/CStyleEnum"
 import * as path from "path"
 import { SYSVAR_CLOCK_ADDRESS, SYSVAR_RENT_ADDRESS } from "@solana/sysvars"
 import { SYSTEM_PROGRAM_ADDRESS } from "@solana-program/system"
@@ -103,15 +109,11 @@ it("init and account fetch", async () => {
   expect(res.u32Field).toBe(1234567891)
   expect(res.i32Field).toBe(-1234567891)
   expect(res.f32Field).toBe(123456.5)
-  expect(res.u64Field.eq(new BN("9223372036854775817"))).toBe(true)
-  expect(res.i64Field.eq(new BN("-4611686018427387914"))).toBe(true)
+  expect(res.u64Field).toBe(9223372036854775817n)
+  expect(res.i64Field).toBe(-4611686018427387914n)
   expect(res.f64Field).toBe(1234567891.345)
-  expect(
-    res.u128Field.eq(new BN("170141183460469231731687303715884105737"))
-  ).toBe(true)
-  expect(
-    res.i128Field.eq(new BN("-85070591730234615865843651857942052874"))
-  ).toBe(true)
+  expect(res.u128Field).toBe(170141183460469231731687303715884105737n)
+  expect(res.i128Field).toBe(-85070591730234615865843651857942052874n)
   expect(res.bytesField).toEqual(Uint8Array.from([1, 2, 255, 254]))
   expect(res.stringField).toBe("hello")
   expect(res.pubkeyField).toEqual(
@@ -120,11 +122,11 @@ it("init and account fetch", async () => {
 
   // vecField
   expect(res.vecField.length).toBe(5)
-  expect(res.vecField[0].eq(new BN("1")))
-  expect(res.vecField[1].eq(new BN("2")))
-  expect(res.vecField[2].eq(new BN("100")))
-  expect(res.vecField[3].eq(new BN("1000")))
-  expect(res.vecField[4].eq(new BN("18446744073709551615")))
+  expect(res.vecField[0]).toBe(1n)
+  expect(res.vecField[1]).toBe(2n)
+  expect(res.vecField[2]).toBe(100n)
+  expect(res.vecField[3]).toBe(1000n)
+  expect(res.vecField[4]).toBe(18446744073709551615n)
 
   // vecStructField
   expect(res.vecStructField.length).toBe(1)
@@ -296,19 +298,20 @@ it("instruction with args", async () => {
         u32Field: 1234567899,
         i32Field: -123456789,
         f32Field: 123458.5,
-        u64Field: new BN("9223372036854775810"),
-        i64Field: new BN("-4611686018427387912"),
+        u64Field: 9223372036854775810n,
+        i64Field: -4611686018427387912n,
         f64Field: 1234567892.445,
-        u128Field: new BN("170141183460469231731687303715884105740"),
-        i128Field: new BN("-85070591730234615865843651857942052877"),
+        u128Field: 170141183460469231731687303715884105740n,
+        i128Field: -85070591730234615865843651857942052877n,
         bytesField: Uint8Array.from([5, 10, 255]),
         stringField: "string value",
         pubkeyField: address("GDddEKTjLBqhskzSMYph5o54VYLQfPCR3PoFqKHLJK6s"),
-        vecField: [new BN(1), new BN("123456789123456789")],
+        vecField: [1n, 123456789123456789n],
         vecStructField: [
           new FooStruct({
             field1: 1,
             field2: 2,
+            field3: 333n,
             nested: new BarStruct({
               someField: true,
               otherField: 55,
@@ -338,6 +341,7 @@ it("instruction with args", async () => {
         structField: new FooStruct({
           field1: 1,
           field2: 2,
+          field3: 444n,
           nested: new BarStruct({
             someField: true,
             otherField: 55,
@@ -376,6 +380,7 @@ it("instruction with args", async () => {
           }),
         ]),
         enumField4: new NoFields(),
+        cStyleEnumField: new Second(),
       },
       {
         state: state,
@@ -389,7 +394,7 @@ it("instruction with args", async () => {
     ),
     initializeWithValues2(
       {
-        vecOfOption: [null, new BN(20)],
+        vecOfOption: [null, 20n],
       },
       {
         state: state2,
@@ -416,15 +421,11 @@ it("instruction with args", async () => {
   expect(res.u32Field).toBe(1234567899)
   expect(res.i32Field).toBe(-123456789)
   expect(res.f32Field).toBe(123458.5)
-  expect(res.u64Field.eq(new BN("9223372036854775810"))).toBe(true)
-  expect(res.i64Field.eq(new BN("-4611686018427387912"))).toBe(true)
+  expect(res.u64Field).toBe(9223372036854775810n)
+  expect(res.i64Field).toBe(-4611686018427387912n)
   expect(res.f64Field).toBe(1234567892.445)
-  expect(
-    res.u128Field.eq(new BN("170141183460469231731687303715884105740"))
-  ).toBe(true)
-  expect(
-    res.i128Field.eq(new BN("-85070591730234615865843651857942052877"))
-  ).toBe(true)
+  expect(res.u128Field).toBe(170141183460469231731687303715884105740n)
+  expect(res.i128Field).toBe(-85070591730234615865843651857942052877n)
   expect(res.bytesField).toEqual(Uint8Array.from([5, 10, 255]))
   expect(res.stringField).toBe("string value")
   expect(res.pubkeyField).toEqual(
@@ -433,8 +434,8 @@ it("instruction with args", async () => {
 
   // vecField
   expect(res.vecField.length).toBe(2)
-  expect(res.vecField[0].eq(new BN("1")))
-  expect(res.vecField[1].eq(new BN("123456789123456789")))
+  expect(res.vecField[0]).toBe(1n)
+  expect(res.vecField[1]).toBe(123456789123456789n)
 
   // vecStructField
   expect(res.vecStructField.length).toBe(1)
@@ -553,7 +554,7 @@ it("instruction with args", async () => {
 
   // vecOfOption
   expect(res2.vecOfOption[0]).toBe(null)
-  expect(res2.vecOfOption[1] !== null && res2.vecOfOption[1].eqn(20)).toBe(true)
+  expect(res2.vecOfOption[1]).toBe(20n)
 })
 
 it("optional with some readonly signer", async () => {
@@ -676,8 +677,8 @@ it("tx error", async () => {
     expect(parsed.logs).toStrictEqual([
       "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 invoke [1]",
       "Program log: Instruction: CauseError",
-      "Program log: AnchorError thrown in programs/example-program/src/lib.rs:90. Error Code: SomeError. Error Number: 6000. Error Message: Example error..",
-      "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 consumed 2304 of 200000 compute units",
+      "Program log: AnchorError thrown in programs/example-program/src/lib.rs:92. Error Code: SomeError. Error Number: 6000. Error Message: Example error..",
+      "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 consumed 2043 of 200000 compute units",
       "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 failed: custom program error: 0x1770",
     ])
 
@@ -707,18 +708,20 @@ it("tx error skip preflight", async () => {
   }
 })
 
-it("fromTxError", () => {
+describe("fromTxError", () => {
   it("returns null when CPI call fails", async () => {
     const errMock = {
-      logs: [
-        "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 invoke [1]",
-        "Program log: Instruction: CauseError",
-        "Program 11111111111111111111111111111111 invoke [2]",
-        "Allocate: requested 1000000000000000000, max allowed 10485760",
-        "Program 11111111111111111111111111111111 failed: custom program error: 0x3",
-        "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 consumed 7958 of 1400000 compute units",
-        "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 failed: custom program error: 0x3",
-      ],
+      context: {
+        logs: [
+          "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 invoke [1]",
+          "Program log: Instruction: CauseError",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Allocate: requested 1000000000000000000, max allowed 10485760",
+          "Program 11111111111111111111111111111111 failed: custom program error: 0x3",
+          "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 consumed 7958 of 1400000 compute units",
+          "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 failed: custom program error: 0x3",
+        ],
+      },
     }
 
     expect(fromTxError(errMock)).toBe(null)
@@ -726,17 +729,19 @@ it("fromTxError", () => {
 
   it("parses anchor error correctly", () => {
     const errMock = {
-      logs: [
-        "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 invoke [1]",
-        "Program log: Instruction: CauseError",
-        "Program log: AnchorError caused by account: system_program. Error Code: InvalidProgramId. Error Number: 3008. Error Message: Program ID was not as expected.",
-        "Program log: Left:",
-        "Program log: 24S58Cp5Myf6iGx4umBNd7RgDrZ9nkKzvkfFHBMDomNa",
-        "Program log: Right:",
-        "Program log: 11111111111111111111111111111111",
-        "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 consumed 5043 of 1400000 compute units",
-        "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 failed: custom program error: 0xbc0",
-      ],
+      context: {
+        logs: [
+          "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 invoke [1]",
+          "Program log: Instruction: CauseError",
+          "Program log: AnchorError caused by account: system_program. Error Code: InvalidProgramId. Error Number: 3008. Error Message: Program ID was not as expected.",
+          "Program log: Left:",
+          "Program log: 24S58Cp5Myf6iGx4umBNd7RgDrZ9nkKzvkfFHBMDomNa",
+          "Program log: Right:",
+          "Program log: 11111111111111111111111111111111",
+          "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 consumed 5043 of 1400000 compute units",
+          "Program 3rTQ3R4B2PxZrAyx7EUefySPgZY8RhJf16cZajbmrzp8 failed: custom program error: 0xbc0",
+        ],
+      },
     }
 
     expect(fromTxError(errMock)).toBeInstanceOf(InvalidProgramId)
@@ -753,19 +758,20 @@ it("toJSON", async () => {
     u32Field: 123456789,
     i32Field: -123456789,
     f32Field: 123456.5,
-    u64Field: new BN("9223372036854775805"),
-    i64Field: new BN("4611686018427387910"),
+    u64Field: 9223372036854775805n,
+    i64Field: 4611686018427387910n,
     f64Field: 1234567891.35,
-    u128Field: new BN("170141183460469231731687303715884105760"),
-    i128Field: new BN("-85070591730234615865843651857942052897"),
+    u128Field: 170141183460469231731687303715884105760n,
+    i128Field: -85070591730234615865843651857942052897n,
     bytesField: Uint8Array.from([1, 255]),
     stringField: "a string",
     pubkeyField: address("EPZP2wrcRtMxrAPJCXVEQaYD9eH7fH7h12YqKDcd4aS7"),
-    vecField: [new BN("10"), new BN("1234567890123456")],
+    vecField: [10n, 1234567890123456n],
     vecStructField: [
       new FooStruct({
         field1: 5,
         field2: 6,
+        field3: 555n,
         nested: new BarStruct({
           someField: true,
           otherField: 15,
@@ -792,6 +798,7 @@ it("toJSON", async () => {
     optionStructField: new FooStruct({
       field1: 8,
       field2: 9,
+      field3: 666n,
       nested: new BarStruct({
         someField: true,
         otherField: 17,
@@ -812,6 +819,7 @@ it("toJSON", async () => {
     structField: new FooStruct({
       field1: 11,
       field2: 12,
+      field3: 777n,
       nested: new BarStruct({
         someField: false,
         otherField: 177,
@@ -853,6 +861,7 @@ it("toJSON", async () => {
       }),
     ]),
     enumField4: new NoFields(),
+    cStyleEnumField: new Third(),
   })
 
   const stateJSON = state.toJSON()
@@ -879,6 +888,7 @@ it("toJSON", async () => {
       {
         field1: 5,
         field2: 6,
+        field3: "555",
         nested: {
           someField: true,
           otherField: 15,
@@ -908,6 +918,7 @@ it("toJSON", async () => {
     optionStructField: {
       field1: 8,
       field2: 9,
+      field3: "666",
       nested: {
         someField: true,
         otherField: 17,
@@ -930,6 +941,7 @@ it("toJSON", async () => {
     structField: {
       field1: 11,
       field2: 12,
+      field3: "777",
       nested: {
         someField: false,
         otherField: 177,
@@ -984,6 +996,9 @@ it("toJSON", async () => {
     enumField4: {
       kind: "NoFields",
     },
+    cStyleEnumField: {
+      kind: "Third",
+    },
   })
 
   /**
@@ -999,11 +1014,11 @@ it("toJSON", async () => {
   expect(stateFromJSON.u32Field).toBe(state.u32Field)
   expect(stateFromJSON.i32Field).toBe(state.i32Field)
   expect(stateFromJSON.f32Field).toBe(state.f32Field)
-  expect(stateFromJSON.u64Field.toString()).toBe(state.u64Field.toString())
-  expect(stateFromJSON.i64Field.toString()).toBe(state.i64Field.toString())
+  expect(stateFromJSON.u64Field).toBe(state.u64Field)
+  expect(stateFromJSON.i64Field).toBe(state.i64Field)
   expect(stateFromJSON.f64Field).toBe(state.f64Field)
-  expect(stateFromJSON.u128Field.toString()).toBe(state.u128Field.toString())
-  expect(stateFromJSON.i128Field.toString()).toBe(state.i128Field.toString())
+  expect(stateFromJSON.u128Field).toBe(state.u128Field)
+  expect(stateFromJSON.i128Field).toBe(state.i128Field)
   expect(stateFromJSON.bytesField).toStrictEqual(state.bytesField)
   expect(stateFromJSON.stringField).toBe(state.stringField)
   expect(stateFromJSON.pubkeyField.toString()).toBe(
@@ -1012,12 +1027,8 @@ it("toJSON", async () => {
 
   // vecField
   expect(stateFromJSON.vecField.length).toBe(2)
-  expect(stateFromJSON.vecField[0].toString()).toBe(
-    state.vecField[0].toString()
-  )
-  expect(stateFromJSON.vecField[1].toString()).toBe(
-    state.vecField[1].toString()
-  )
+  expect(stateFromJSON.vecField[0]).toBe(state.vecField[0])
+  expect(stateFromJSON.vecField[1]).toBe(state.vecField[1])
 
   // vecStructField
   expect(stateFromJSON.vecStructField.length).toBe(1)
@@ -1173,6 +1184,67 @@ it("toJSON", async () => {
   }
 })
 
+it("remaining accounts should match", async () => {
+  const payer = await createKeyPairSignerFromBytes(Uint8Array.from(faucet))
+
+  const remainingKeypair1 = await generateKeyPair()
+  const remainingKeypair2 = await generateKeyPair()
+
+  const remainingAddress1 = await getAddressFromPublicKey(
+    remainingKeypair1.publicKey
+  )
+  const remainingAddress2 = await getAddressFromPublicKey(
+    remainingKeypair2.publicKey
+  )
+
+  await sendTx(payer, [
+    remaining(
+      {
+        expectedRemainingAccounts: 2,
+      },
+      {
+        payer,
+        systemProgram: SYSTEM_PROGRAM_ADDRESS,
+      },
+      [
+        { address: remainingAddress1, role: AccountRole.READONLY },
+        { address: remainingAddress2, role: AccountRole.READONLY },
+      ]
+    ),
+  ])
+})
+
+it("remaining accounts should throw", async () => {
+  const payer = await createKeyPairSignerFromBytes(Uint8Array.from(faucet))
+
+  try {
+    await sendTx(payer, [
+      remaining(
+        {
+          expectedRemainingAccounts: 2,
+        },
+        {
+          payer,
+          systemProgram: SYSTEM_PROGRAM_ADDRESS,
+        }
+      ),
+    ])
+  } catch (e) {
+    const parsed = fromTxError(e)
+
+    expect(parsed).not.toBe(null)
+    if (parsed === null) {
+      throw new Error()
+    }
+
+    expect(parsed.message).toBe("6003: Remaining accounts mismatch.")
+    expect(parsed.code).toBe(6003)
+    expect(parsed.name).toBe("RemainingAccountsMismatch")
+    expect("msg" in parsed && parsed.msg).toBe("Remaining accounts mismatch.")
+    return
+  }
+})
+
 type SendAndConfirmTransactionFactoryFn = ReturnType<
   typeof sendAndConfirmTransactionFactory
 >
@@ -1180,10 +1252,10 @@ type SendConfig = Parameters<SendAndConfirmTransactionFactoryFn>[1]
 
 async function sendTx(
   payer: TransactionSigner,
-  ixs: IInstruction[],
+  ixs: Instruction[],
   config: Partial<SendConfig> = {}
 ) {
-  const blockhash = await rpc
+  const { value: blockhash } = await rpc
     .getLatestBlockhash({ commitment: "finalized" })
     .send()
 
@@ -1191,16 +1263,12 @@ async function sendTx(
     createTransactionMessage({ version: 0 }),
     (tx) => appendTransactionMessageInstructions(ixs, tx),
     (tx) => setTransactionMessageFeePayerSigner(payer, tx),
-    (tx) =>
-      setTransactionMessageLifetimeUsingBlockhash(
-        {
-          blockhash: blockhash.value.blockhash,
-          lastValidBlockHeight: blockhash.value.lastValidBlockHeight,
-        },
-        tx
-      ),
+    (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
     (tx) => signTransactionMessageWithSigners(tx)
   )
+
+  assertIsSendableTransaction(tx)
+  assertIsTransactionWithBlockhashLifetime(tx)
 
   const sendAndConfirmFn = sendAndConfirmTransactionFactory({
     rpc,
